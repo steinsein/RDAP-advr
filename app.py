@@ -10,6 +10,7 @@ from datetime import datetime
 
 import pandas as pd
 import streamlit as st
+import streamlit.components.v1 as components
 
 from config import (
     APP_ICON,
@@ -112,10 +113,6 @@ st.markdown("""
         display: none;
     }
 </style>
-<script>
-    // 페이지 전환 시 맨 위로 스크롤
-    window.parent.document.querySelector('section.main').scrollTo(0, 0);
-</script>
 """, unsafe_allow_html=True)
 
 
@@ -701,6 +698,17 @@ def _submit_data():
 # ══════════════════════════════════════════════
 def main():
     page_name = PAGES[st.session_state.page]
+
+    # 페이지 전환 시 맨 위로 스크롤
+    components.html(
+        """
+        <script>
+            var main = window.parent.document.querySelector('section.main');
+            if (main) main.scrollTo({top: 0, behavior: 'instant'});
+        </script>
+        """,
+        height=0,
+    )
 
     if page_name == "consent":
         render_consent()
