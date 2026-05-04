@@ -62,7 +62,13 @@ st.set_page_config(
 # ══════════════════════════════════════════════
 st.markdown("""
 <style>
-    /* 라디오 버튼 터치 영역 확대 */
+    /* 설문 문항 텍스트 (질문 라벨) 2배 */
+    [data-testid="stWidgetLabel"] p,
+    [data-testid="stWidgetLabel"] label {
+        font-size: 1.75rem !important;
+        line-height: 1.6 !important;
+    }
+    /* 라디오 버튼 터치 영역 확대 + 선택지 텍스트 2배 */
     .stRadio > div {
         gap: 0.5rem;
     }
@@ -71,27 +77,32 @@ st.markdown("""
         border: 1px solid #e0e0e0;
         border-radius: 8px;
         cursor: pointer;
-        font-size: 1rem;
-        line-height: 1.5;
+        font-size: 1.75rem;
+        line-height: 1.6;
     }
     .stRadio > div > label:hover {
         background-color: #f0f4f8;
     }
-    /* 시나리오 텍스트 가독성 */
+    /* 시나리오 텍스트 가독성 — 2배 */
     .scenario-text {
         background-color: #f8f9fa;
         padding: 1rem;
         border-radius: 8px;
         border-left: 4px solid #4A90D9;
         margin-bottom: 1rem;
-        font-size: 1.05rem;
+        font-size: 1.75rem;
         line-height: 1.7;
     }
     /* 버튼 크기 */
     .stButton > button {
         width: 100%;
         padding: 0.75rem;
-        font-size: 1.1rem;
+        font-size: 1.3rem;
+    }
+    /* 안내/정보 텍스트 */
+    .stMarkdown p, .stMarkdown li {
+        font-size: 1.2rem;
+        line-height: 1.7;
     }
     /* 결과 카드 */
     .result-card {
@@ -107,6 +118,11 @@ st.markdown("""
         border-radius: 10px;
         margin: 0.5rem 0 1rem 0;
         line-height: 1.8;
+    }
+    /* 텍스트 입력 영역 글씨 크기 */
+    .stTextArea textarea {
+        font-size: 1.2rem !important;
+        line-height: 1.6 !important;
     }
     /* 섹션 헤더 숨기기 */
     header[data-testid="stHeader"] {
