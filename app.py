@@ -77,13 +77,13 @@ st.markdown("""
         border: 1px solid #e0e0e0;
         border-radius: 8px;
         cursor: pointer;
-        font-size: 1.75rem !important;
+        font-size: 1.4rem !important;
         line-height: 1.6;
     }
     .stRadio > div > label p,
     .stRadio > div > label span,
     .stRadio > div > label div {
-        font-size: 2.6rem !important;
+        font-size: 1.4rem !important;
     }
     .stRadio > div > label:hover {
         background-color: #f0f4f8;
