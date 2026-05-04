@@ -726,38 +726,41 @@ def main():
 
     if current_page != prev_page:
         st.session_state._prev_page = current_page
-        # 여러 셀렉터 + 딜레이로 확실하게 최상단 스크롤
-        components.html(
-            """
-            <script>
-                function scrollToTop() {
-                    var selectors = [
-                        'section.main',
-                        '[data-testid="stAppViewContainer"]',
-                        '[data-testid="stMainBlockContainer"]',
-                        '.main',
-                        '.block-container'
-                    ];
-                    for (var i = 0; i < selectors.length; i++) {
-                        try {
-                            var el = window.parent.document.querySelector(selectors[i]);
-                            if (el) { el.scrollTop = 0; }
-                        } catch(e) {}
+
+        # 방법 1: components.html — iframe 내부에서 parent 접근
+        scroll_js = """
+        <script>
+            function persistentScroll() {
+                var start = Date.now();
+                function doScroll() {
+                    var all = window.parent.document.querySelectorAll('*');
+                    for (var i = 0; i < all.length; i++) {
+                        if (all[i].scrollTop > 0) all[i].scrollTop = 0;
                     }
-                    try { window.parent.scrollTo(0, 0); } catch(e) {}
-                    try {
-                        window.parent.document.documentElement.scrollTop = 0;
-                        window.parent.document.body.scrollTop = 0;
-                    } catch(e) {}
+                    window.parent.scrollTo(0, 0);
+                    if (Date.now() - start < 2000) {
+                        window.requestAnimationFrame(doScroll);
+                    }
                 }
-                scrollToTop();
-                setTimeout(scrollToTop, 100);
-                setTimeout(scrollToTop, 300);
-                setTimeout(scrollToTop, 500);
-                setTimeout(scrollToTop, 1000);
-            </script>
-            """,
-            height=1,
+                doScroll();
+            }
+            persistentScroll();
+        </script>
+        """
+        components.html(scroll_js, height=0)
+
+        # 방법 2: st.markdown — iframe srcdoc 방식 (cross-origin 우회)
+        st.markdown(
+            '<iframe srcdoc="'
+            "<script>"
+            "function ps(){var s=Date.now();function d(){"
+            "var a=window.parent.document.querySelectorAll('*');"
+            "for(var i=0;i&lt;a.length;i++){if(a[i].scrollTop&gt;0)a[i].scrollTop=0;}"
+            "window.parent.scrollTo(0,0);"
+            "if(Date.now()-s&lt;2000)requestAnimationFrame(d);}d();}ps();"
+            "</script>"
+            '" style="display:none;width:0;height:0;border:none;position:absolute;"></iframe>',
+            unsafe_allow_html=True,
         )
 
     if page_name == "consent":
