@@ -99,11 +99,23 @@ st.markdown("""
         border-radius: 12px;
         margin-bottom: 1rem;
     }
+    /* 결과 해석 박스 */
+    .result-explain {
+        background-color: #f0f4f8;
+        padding: 1rem 1.2rem;
+        border-radius: 10px;
+        margin: 0.5rem 0 1rem 0;
+        line-height: 1.8;
+    }
     /* 섹션 헤더 숨기기 */
     header[data-testid="stHeader"] {
         display: none;
     }
 </style>
+<script>
+    // 페이지 전환 시 맨 위로 스크롤
+    window.parent.document.querySelector('section.main').scrollTo(0, 0);
+</script>
 """, unsafe_allow_html=True)
 
 
@@ -142,9 +154,9 @@ def next_page():
 
 
 def show_progress():
-    """설문 진행률 표시 (결과 페이지 제외)."""
-    if st.session_state.page < len(PAGES) - 1:
-        progress = st.session_state.page / (len(PAGES) - 2)  # 결과 페이지 제외
+    """설문 진행률 표시 (결과/완료 페이지 제외)."""
+    if st.session_state.page < len(PAGES) - 2:  # results, submitted 제외
+        progress = st.session_state.page / (len(PAGES) - 3)
         st.progress(progress)
         st.caption(f"진행률: {int(progress * 100)}%")
 
@@ -523,13 +535,24 @@ def render_results():
     st.header("📊 나의 종교 다양성 태도 프로파일")
     st.markdown("---")
 
+    # ── 안내 ──
+    st.markdown(
+        "이 설문은 같은 상황을 종교만 바꿔 가며 제시했습니다. "
+        "아래 결과는 **종교에 따라 내 반응이 얼마나 달라졌는지**를 보여줍니다."
+    )
+    st.markdown("")
+
     # ── 프로파일 유형 ──
-    st.subheader(f"🏷️ 유형: {profile}")
+    st.subheader(f"🏷️ 나의 유형: {profile}")
     st.markdown(PROFILE_DESCRIPTIONS.get(profile, ""))
     st.markdown("")
 
     # ── CR 편차 시각화 ──
-    st.subheader("종교 쌍별 태도 차이")
+    st.subheader("📏 종교별 반응 차이")
+    st.markdown(
+        "같은 상황인데 종교만 달랐을 때, 내 응답이 얼마나 달랐는지를 보여줍니다. "
+        "**수치가 높을수록 두 종교에 대해 다르게 반응**했다는 뜻입니다."
+    )
 
     chart_rows = []
     for pair_key, label in PAIR_LABELS.items():
@@ -541,39 +564,66 @@ def render_results():
             ratio = (total / max_val * 100) if max_val > 0 else 0
             chart_rows.append({
                 "비교 쌍": label,
-                "편차 비율 (%)": round(ratio, 1),
+                "반응 차이 (%)": round(ratio, 1),
                 "수준": level,
             })
 
     if chart_rows:
         df = pd.DataFrame(chart_rows)
-        st.bar_chart(df, x="비교 쌍", y="편차 비율 (%)", horizontal=True)
+        st.bar_chart(df, x="비교 쌍", y="반응 차이 (%)", horizontal=True)
 
-        # 텍스트 요약
+        # 해석 텍스트
         for row in chart_rows:
-            st.markdown(f"- **{row['비교 쌍']}**: {row['수준']} ({row['편차 비율 (%)']}%)")
+            level = row["수준"]
+            pct = row["반응 차이 (%)"]
+            pair = row["비교 쌍"]
+
+            if pct == 0:
+                emoji = "🟢"
+                interpret = "두 종교에 대해 거의 같은 반응을 보였습니다."
+            elif pct <= 33:
+                emoji = "🟢"
+                interpret = "두 종교에 대한 반응이 비슷한 편입니다."
+            elif pct <= 66:
+                emoji = "🟡"
+                interpret = "두 종교에 대한 반응에 어느 정도 차이가 있습니다."
+            else:
+                emoji = "🔴"
+                interpret = "두 종교에 대한 반응이 상당히 다릅니다."
+
+            st.markdown(f"{emoji} **{pair}** — {interpret} ({pct}%)")
 
     st.markdown("")
 
     # ── SW 괴리 ──
-    st.subheader("당위-실제 괴리")
+    st.subheader("🔄 원칙과 실제 반응의 차이")
+    st.markdown(
+        "파트 C에서 \"이렇게 해야 한다\"고 답한 원칙과, "
+        "\"실제로는 이렇게 할 것 같다\"고 답한 반응 사이에 차이가 있는지 보여줍니다."
+    )
+
     sw_labels = ["종교적 배려 요청", "종교 간 결혼", "종교 시설 건축"]
     for label, (k, v) in zip(sw_labels, sw_gaps.items()):
         if v == 0:
-            gap_text = "✅ 일치"
+            st.markdown(f"🟢 **{label}:** 원칙과 실제 반응이 일치합니다.")
         elif v > 0:
-            gap_text = f"⚡ 괴리 {v:+d} (실제가 당위보다 폐쇄적)"
+            st.markdown(
+                f"🟡 **{label}:** 원칙보다 실제 반응이 좀 더 조심스러운 편입니다. "
+                f"(차이: {v}단계)"
+            )
         else:
-            gap_text = f"💚 괴리 {v:+d} (실제가 당위보다 개방적)"
-        st.markdown(f"- **{label}:** {gap_text}")
+            st.markdown(
+                f"🔵 **{label}:** 원칙보다 실제 반응이 오히려 더 열린 편입니다. "
+                f"(차이: {abs(v)}단계)"
+            )
 
     st.markdown("")
 
     # ── 안내 메시지 ──
     st.info(
         "💡 **이 결과는 '진단'이 아닌 '성찰의 출발점'입니다.** "
-        "편견은 누구에게나 존재하며, 이를 인식하는 것 자체가 "
-        "편견 습관 깨기의 첫 단계입니다 (Devine, 1989)."
+        "누구나 종교에 따라 다르게 반응하는 부분이 있을 수 있습니다. "
+        "이를 알아차리는 것 자체가 자기 이해의 첫걸음입니다."
     )
 
     st.markdown("---")
@@ -607,18 +657,19 @@ def render_results():
     st.markdown("---")
 
     # ── 데이터 저장 ──
-    if not st.session_state.data_logged:
-        st.button("응답 제출 완료", on_click=_submit_data, type="primary")
-    else:
-        st.success("✅ 응답이 성공적으로 제출되었습니다. 감사합니다!")
-        st.markdown(
-            "이 페이지를 닫으셔도 됩니다. "
-            "결과 화면을 캡처해 두시면 나중에 다시 확인하실 수 있습니다."
-        )
+    st.button("응답 제출 완료", on_click=_submit_data, type="primary")
+
+
+def render_submitted():
+    """제출 완료 화면."""
+    st.markdown("")
+    st.markdown("")
+    st.success("✅ 응답이 성공적으로 제출되었습니다. 감사합니다!")
+    st.markdown("이 페이지를 닫으셔도 됩니다.")
 
 
 def _submit_data():
-    """데이터 기록 실행."""
+    """데이터 기록 실행 후 완료 페이지로 이동."""
     scores = st.session_state.scores
     flat_scores = {
         "cr_PT_IS": scores["cr_deviations"].get("PT_IS", {}).get("total", ""),
@@ -642,6 +693,7 @@ def _submit_data():
         rq_responses=st.session_state.rq_responses,
     )
     st.session_state.data_logged = True
+    next_page()
 
 
 # ══════════════════════════════════════════════
@@ -666,6 +718,8 @@ def main():
         render_part_e()
     elif page_name == "results":
         render_results()
+    elif page_name == "submitted":
+        render_submitted()
 
 
 if __name__ == "__main__":
