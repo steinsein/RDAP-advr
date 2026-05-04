@@ -720,16 +720,45 @@ def _submit_data():
 def main():
     page_name = PAGES[st.session_state.page]
 
-    # 페이지 전환 시 맨 위로 스크롤
-    components.html(
-        """
-        <script>
-            var main = window.parent.document.querySelector('section.main');
-            if (main) main.scrollTo({top: 0, behavior: 'instant'});
-        </script>
-        """,
-        height=0,
-    )
+    # 페이지 전환 감지 → 스크롤 트리거
+    current_page = st.session_state.page
+    prev_page = st.session_state.get("_prev_page", -1)
+
+    if current_page != prev_page:
+        st.session_state._prev_page = current_page
+        # 여러 셀렉터 + 딜레이로 확실하게 최상단 스크롤
+        components.html(
+            """
+            <script>
+                function scrollToTop() {
+                    var selectors = [
+                        'section.main',
+                        '[data-testid="stAppViewContainer"]',
+                        '[data-testid="stMainBlockContainer"]',
+                        '.main',
+                        '.block-container'
+                    ];
+                    for (var i = 0; i < selectors.length; i++) {
+                        try {
+                            var el = window.parent.document.querySelector(selectors[i]);
+                            if (el) { el.scrollTop = 0; }
+                        } catch(e) {}
+                    }
+                    try { window.parent.scrollTo(0, 0); } catch(e) {}
+                    try {
+                        window.parent.document.documentElement.scrollTop = 0;
+                        window.parent.document.body.scrollTop = 0;
+                    } catch(e) {}
+                }
+                scrollToTop();
+                setTimeout(scrollToTop, 100);
+                setTimeout(scrollToTop, 300);
+                setTimeout(scrollToTop, 500);
+                setTimeout(scrollToTop, 1000);
+            </script>
+            """,
+            height=1,
+        )
 
     if page_name == "consent":
         render_consent()
